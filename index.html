@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPG Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1c1e19;
+    --panel: #22251f;
+    --ink: #e9e4d8;
+    --ink-bright: #f4f1ea;
+    --ink-muted: #b7b09e;
+    --ink-dim: #a49d8c;
+    --ink-faint: #736c5c;
+    --orange: #c9603a;
+    --brass: #8a6b3f;
+    --good: #8fae6f;
+    --line: rgba(233,228,216,.14);
+    --line-strong: rgba(233,228,216,.16);
+    --line-soft: rgba(233,228,216,.08);
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", sans-serif;
+    min-height: 100vh;
+  }
+  .hd { font-family: "Oswald", sans-serif; text-transform: uppercase; letter-spacing: .01em; }
+  .mono { font-family: var(--mono); }
+
+  /* nav */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 26px clamp(20px, 5vw, 56px);
+    border-bottom: 1px solid var(--line);
+    gap: 16px; flex-wrap: wrap;
+  }
+  .mark { display: flex; align-items: center; gap: 10px; }
+  .mark-glyph { width: 26px; height: 26px; border-radius: 3px; flex: none; background: var(--orange); }
+  .mark .hd { font-size: 17px; font-weight: 600; color: var(--ink-bright); }
+  .navlinks { display: flex; gap: 34px; font: 500 13px/1 "Public Sans", sans-serif; letter-spacing: .02em; }
+  .navlinks a { color: var(--ink-muted); text-decoration: none; }
+  .navlinks a:hover { color: var(--ink-bright); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 26px;
+    font: 600 13px/1 "Public Sans", sans-serif;
+    text-transform: uppercase; letter-spacing: .06em;
+    border-radius: 2px; cursor: pointer; border: none;
+    background: var(--orange); color: var(--bg);
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.ghost {
+    background: none; border: 1px solid var(--line-strong); color: var(--ink-muted);
+    padding: 10px 18px; font-size: 11px;
+  }
+  .btn.ghost:hover { color: var(--ink-bright); border-color: var(--ink-faint); filter: none; }
+
+  /* hero */
+  .hero {
+    position: relative;
+    padding: clamp(48px, 7vw, 80px) clamp(20px, 5vw, 56px) clamp(56px, 7vw, 90px);
+    border-bottom: 4px solid var(--brass);
+    background-image: repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px);
+  }
+  .hero h1 { font-size: clamp(44px, 8vw, 76px); line-height: .98; margin: 0 0 22px; color: var(--ink-bright); }
+  .hero p { font-size: 17px; max-width: 480px; color: var(--ink-muted); margin: 0; }
+  .statrow {
+    display: flex; gap: clamp(28px, 4vw, 48px); flex-wrap: wrap;
+    margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--line);
+  }
+  .stat-num { font: 700 30px/1 "Oswald", sans-serif; color: var(--ink-bright); }
+  .stat-lbl {
+    font: 500 11px/1.4 var(--mono);
+    color: var(--brass); text-transform: uppercase; letter-spacing: .06em; margin-top: 6px;
+  }
+
+  /* sections */
+  .section { padding: clamp(40px, 5vw, 60px) clamp(20px, 5vw, 56px) clamp(48px, 6vw, 70px); }
+  .section + .section { border-top: 1px solid var(--line); }
+  .section-hd { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; gap: 12px; flex-wrap: wrap; }
+  .section-hd h2 { font-size: 28px; margin: 0; color: var(--ink-bright); }
+  .section-hd span { font: 500 11px/1 var(--mono); color: var(--brass); letter-spacing: .06em; text-transform: uppercase; }
+
+  /* form */
+  .logform { background: var(--panel); border: 1px solid var(--line-strong); padding: clamp(20px, 3vw, 32px); }
+  .logform .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 18px;
+  }
+  label {
+    display: block;
+    font: 500 10.5px/1 var(--mono);
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--brass); margin-bottom: 8px;
+  }
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    color: var(--ink);
+    padding: 11px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  input::placeholder { color: var(--ink-faint); }
+  input:focus { outline: none; border-color: var(--orange); }
+  input::-webkit-calendar-picker-indicator { filter: invert(.75) sepia(.2); }
+  .form-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 24px; flex-wrap: wrap;
+  }
+  #mpgPreview { font: 500 12px/1 var(--mono); color: var(--ink-dim); letter-spacing: .04em; text-transform: uppercase; }
+  #mpgPreview strong { color: var(--good); font-size: 15px; }
+
+  /* chart */
+  #chart { width: 100%; height: auto; display: block; }
+  .chart-empty, .table-empty {
+    color: var(--ink-faint); text-align: center; padding: 34px 0;
+    font: 400 12px/1.5 var(--mono); letter-spacing: .04em; text-transform: uppercase;
+  }
+
+  /* journal table */
+  .table-scroll { overflow-x: auto; }
+  .logtable { width: 100%; border-collapse: collapse; border: 1px solid var(--line-strong); }
+  .logtable th {
+    font: 600 10.5px/1 "Public Sans", sans-serif;
+    text-transform: uppercase; letter-spacing: .08em; text-align: left;
+    padding: 12px 18px;
+    background: var(--line-soft); color: var(--brass);
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+  }
+  .logtable td {
+    padding: 14px 18px;
+    font-family: var(--mono); font-size: 12.5px;
+    color: #d9d4c6;
+    border-bottom: 1px solid var(--line-soft);
+    white-space: nowrap;
+  }
+  .logtable tr:last-child td { border-bottom: none; }
+  .logtable td.mpg-good { color: var(--good); font-weight: 600; }
+  .logtable td.notes { white-space: normal; color: var(--ink-dim); font-family: "Public Sans", sans-serif; font-size: 12.5px; }
+  td .del {
+    background: none; border: none; color: var(--ink-faint);
+    cursor: pointer; font-size: 14px; padding: 2px 6px;
+  }
+  td .del:hover { color: var(--orange); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+  /* backup banner */
+  .backup-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding: 14px clamp(20px, 5vw, 56px);
+    background: rgba(201,96,58,.14);
+    border-bottom: 1px solid rgba(201,96,58,.4);
+    font-size: 13px;
+  }
+  .backup-banner strong { color: var(--ink-bright); }
+  .backup-banner .actions { display: flex; gap: 10px; align-items: center; }
+  .backup-banner .btn { padding: 8px 16px; font-size: 11px; }
+  .backup-banner .dismiss {
+    background: none; border: none; color: var(--ink-muted);
+    cursor: pointer; font-size: 13px; text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .backup-banner .dismiss:hover { color: var(--ink-bright); }
+  .backup-status {
+    font: 400 11px/1 var(--mono); color: var(--ink-faint);
+    letter-spacing: .04em; margin-top: 10px;
+  }
+
+  /* footer */
+  .foot {
+    padding: 26px clamp(20px, 5vw, 56px);
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    font: 400 12px/1 var(--mono); color: var(--ink-faint);
+    letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="mark"><div class="mark-glyph"></div><span class="hd">MPG Tracker</span></div>
+  <div class="navlinks"><a href="#log">Log</a><a href="#trend">Trend</a><a href="#journal">Journal</a></div>
+</nav>
+
+<div class="backup-banner" id="backupBanner" hidden>
+  <span>You've logged <strong id="backupCount"></strong> fill-ups since your last backup. Your data only lives in this browser.</span>
+  <div class="actions">
+    <button type="button" class="btn" id="backupNowBtn">Export CSV</button>
+    <button type="button" class="dismiss" id="backupDismissBtn">Remind me later</button>
+  </div>
+</div>
+
+<div class="hero">
+  <h1 class="hd">MPG<br>Tracker</h1>
+  <p>Log your fill-ups and see your gas mileage over time. Data stays in your browser.</p>
+  <div class="statrow">
+    <div><div class="stat-num" id="statAvg">—</div><div class="stat-lbl">Avg MPG</div></div>
+    <div><div class="stat-num" id="statLast">—</div><div class="stat-lbl">Last fill-up</div></div>
+    <div><div class="stat-num" id="statTank">—</div><div class="stat-lbl">Miles per tank</div></div>
+    <div><div class="stat-num" id="statCount">—</div><div class="stat-lbl">Fill-ups logged</div></div>
+    <div><div class="stat-num" id="statCost">—</div><div class="stat-lbl" id="statCostLbl">Fuel cost</div></div>
+  </div>
+</div>
+
+<div class="section" id="log">
+  <div class="section-hd"><h2 class="hd">Log a fill-up</h2><span>Miles on tank · gallons pumped</span></div>
+  <form id="entryForm" class="logform">
+    <div class="grid">
+      <div>
+        <label for="date">Date</label>
+        <input type="date" id="date" required>
+      </div>
+      <div>
+        <label for="miles">Miles on tank</label>
+        <input type="number" id="miles" step="0.1" min="1" placeholder="285.4" required>
+      </div>
+      <div>
+        <label for="gallons">Gallons pumped</label>
+        <input type="number" id="gallons" step="0.001" min="0.1" placeholder="17.85" required>
+      </div>
+      <div>
+        <label for="price">Price / gal ($ · opt)</label>
+        <input type="number" id="price" step="0.001" min="0" placeholder="3.299">
+      </div>
+      <div>
+        <label for="notes">Route / notes (opt)</label>
+        <input type="text" id="notes" placeholder="I-70 commute, towing…">
+      </div>
+    </div>
+    <div class="form-footer">
+      <span id="mpgPreview"></span>
+      <button type="submit" class="btn">Log fill-up</button>
+    </div>
+  </form>
+</div>
+
+<div class="section" id="trend">
+  <div class="section-hd"><h2 class="hd">MPG trend</h2><span id="trendSub">Tank by tank</span></div>
+  <svg id="chart" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="chart-empty" id="chartEmpty" hidden>Log at least two fill-ups to see the trend</div>
+</div>
+
+<div class="section" id="journal">
+  <div class="section-hd"><h2 class="hd">Fuel journal</h2><span id="journalSub">All entries</span></div>
+  <div class="table-scroll">
+    <table class="logtable" id="historyTable">
+      <thead>
+        <tr>
+          <th>Date</th><th>Miles</th><th>Gallons</th><th>MPG</th><th>$ / gal</th><th>Cost</th><th>Route / notes</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+  <div class="table-empty" id="tableEmpty">No fill-ups logged yet</div>
+  <div class="toolbar">
+    <button type="button" class="btn ghost" id="exportBtn">Export CSV</button>
+    <button type="button" class="btn ghost" id="importBtn">Import CSV</button>
+    <input type="file" id="importFile" accept=".csv" hidden>
+  </div>
+  <div class="backup-status" id="backupStatus"></div>
+</div>
+
+<div class="foot"><span>kreider.dev</span><span>DATA STORED LOCALLY IN YOUR BROWSER</span></div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "mpg-tracker-entries";
+  const LEGACY_KEY = "4runner-mpg-entries";
+  const BACKUP_META_KEY = "mpg-tracker-backup-meta";
+  const REMIND_AFTER = 5; // nudge again after this many new entries since dismissal
+
+  /** @type {{id:string,date:string,miles:number,gallons:number,price:number|null,notes:string}[]} */
+  let entries = load();
+
+  function load() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY))
+        || JSON.parse(localStorage.getItem(LEGACY_KEY))
+        || [];
+    }
+    catch { return []; }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function loadBackupMeta() {
+    try { return JSON.parse(localStorage.getItem(BACKUP_META_KEY)) || { lastCount: 0, lastDate: null }; }
+    catch { return { lastCount: 0, lastDate: null }; }
+  }
+  function saveBackupMeta(meta) {
+    localStorage.setItem(BACKUP_META_KEY, JSON.stringify(meta));
+  }
+  let backupMeta = loadBackupMeta();
+
+  const $ = id => document.getElementById(id);
+  const mpgOf = e => e.miles / e.gallons;
+  const costOf = e => e.price != null ? e.price * e.gallons : null;
+  const fmt = (n, d = 1) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const money = n => "$" + fmt(n, 2);
+  const byDate = (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+  // 2026-06-28 -> 06.28.26, journal style
+  const journalDate = iso => `${iso.slice(5, 7)}.${iso.slice(8, 10)}.${iso.slice(2, 4)}`;
+
+  // ---- form ----
+  $("date").value = new Date().toISOString().slice(0, 10);
+
+  function updatePreview() {
+    const m = parseFloat($("miles").value), g = parseFloat($("gallons").value);
+    $("mpgPreview").innerHTML = (m > 0 && g > 0)
+      ? `This tank — <strong>${fmt(m / g)} MPG</strong>` : "";
+  }
+  $("miles").addEventListener("input", updatePreview);
+  $("gallons").addEventListener("input", updatePreview);
+
+  $("entryForm").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const price = $("price").value === "" ? null : parseFloat($("price").value);
+    entries.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      date: $("date").value,
+      miles: parseFloat($("miles").value),
+      gallons: parseFloat($("gallons").value),
+      price,
+      notes: $("notes").value.trim()
+    });
+    save();
+    render();
+    ev.target.reset();
+    $("date").value = new Date().toISOString().slice(0, 10);
+    updatePreview();
+    $("miles").focus();
+  });
+
+  // ---- stats ----
+  function fleetAvg() {
+    const totMiles = entries.reduce((s, e) => s + e.miles, 0);
+    const totGal = entries.reduce((s, e) => s + e.gallons, 0);
+    return totGal > 0 ? totMiles / totGal : 0;
+  }
+
+  function renderStats() {
+    if (!entries.length) {
+      ["statAvg","statLast","statTank","statCount","statCost"].forEach(id => $(id).textContent = "—");
+      $("statCostLbl").textContent = "Fuel cost";
+      return;
+    }
+    const sorted = [...entries].sort(byDate);
+    const totMiles = sorted.reduce((s, e) => s + e.miles, 0);
+    const costs = sorted.map(costOf).filter(c => c != null);
+    const totCost = costs.reduce((s, c) => s + c, 0);
+
+    $("statAvg").textContent = fmt(fleetAvg());
+    $("statLast").textContent = fmt(mpgOf(sorted[sorted.length - 1]));
+    $("statTank").textContent = fmt(totMiles / sorted.length, 0);
+    $("statCount").textContent = sorted.length;
+    $("statCost").textContent = costs.length ? money(totCost) : "—";
+    $("statCostLbl").textContent = costs.length ? "Fuel cost logged" : "Fuel cost";
+  }
+
+  // ---- chart ----
+  function renderChart() {
+    const svg = $("chart");
+    const sorted = [...entries].sort(byDate);
+    const show = sorted.length >= 2;
+    svg.style.display = show ? "block" : "none";
+    $("chartEmpty").hidden = show;
+    $("trendSub").textContent = show ? `${sorted.length} tanks` : "Tank by tank";
+    if (!show) { svg.innerHTML = ""; return; }
+
+    const W = 900, H = 260, padL = 46, padR = 16, padT = 16, padB = 30;
+    const mpgs = sorted.map(mpgOf);
+    let lo = Math.min(...mpgs), hi = Math.max(...mpgs);
+    const span = Math.max(hi - lo, 2);
+    lo = Math.floor(lo - span * 0.15); hi = Math.ceil(hi + span * 0.15);
+
+    const x = i => padL + (i / (sorted.length - 1)) * (W - padL - padR);
+    const y = v => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+
+    const avg = fleetAvg();
+    let out = "";
+
+    // gridlines + y labels
+    const steps = 4;
+    for (let s = 0; s <= steps; s++) {
+      const v = lo + (s / steps) * (hi - lo);
+      out += `<line x1="${padL}" y1="${y(v)}" x2="${W - padR}" y2="${y(v)}" stroke="rgba(233,228,216,.12)" stroke-width="1"/>`;
+      out += `<text x="${padL - 8}" y="${y(v) + 4}" fill="#8a6b3f" font-size="11" font-family="ui-monospace,Menlo,monospace" text-anchor="end">${v.toFixed(1)}</text>`;
+    }
+    // average line
+    out += `<line x1="${padL}" y1="${y(avg)}" x2="${W - padR}" y2="${y(avg)}" stroke="#8fae6f" stroke-width="1" stroke-dasharray="5,4" opacity=".7"/>`;
+    out += `<text x="${W - padR}" y="${y(avg) - 5}" fill="#8fae6f" font-size="11" font-family="ui-monospace,Menlo,monospace" text-anchor="end">AVG ${avg.toFixed(1)}</text>`;
+
+    // line
+    const pts = sorted.map((e, i) => `${x(i)},${y(mpgOf(e))}`).join(" ");
+    out += `<polyline points="${pts}" fill="none" stroke="#c9603a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+    // dots + x labels (thin labels if many points)
+    const labelEvery = Math.ceil(sorted.length / 8);
+    sorted.forEach((e, i) => {
+      out += `<circle cx="${x(i)}" cy="${y(mpgOf(e))}" r="4" fill="#c9603a" stroke="#1c1e19" stroke-width="1.5"><title>${e.date}: ${mpgOf(e).toFixed(1)} MPG</title></circle>`;
+      if (i % labelEvery === 0 || i === sorted.length - 1) {
+        const anchor = i === sorted.length - 1 ? "end" : i === 0 ? "start" : "middle";
+        out += `<text x="${x(i)}" y="${H - 8}" fill="#736c5c" font-size="11" font-family="ui-monospace,Menlo,monospace" text-anchor="${anchor}">${journalDate(e.date)}</text>`;
+      }
+    });
+
+    svg.innerHTML = out;
+  }
+
+  // ---- table ----
+  function renderTable() {
+    const sorted = [...entries].sort(byDate).reverse(); // newest first
+    const body = $("historyBody");
+    const avg = fleetAvg();
+    $("historyTable").style.display = sorted.length ? "table" : "none";
+    $("tableEmpty").style.display = sorted.length ? "none" : "block";
+    $("journalSub").textContent = sorted.length
+      ? `${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}` : "All entries";
+    body.innerHTML = sorted.map(e => {
+      const cost = costOf(e);
+      const mpg = mpgOf(e);
+      return `<tr>
+        <td>${journalDate(e.date)}</td>
+        <td>${fmt(e.miles)}</td>
+        <td>${fmt(e.gallons, 3)}</td>
+        <td class="${mpg >= avg ? "mpg-good" : ""}">${fmt(mpg)}</td>
+        <td>${e.price != null ? money(e.price) : ""}</td>
+        <td>${cost != null ? money(cost) : ""}</td>
+        <td class="notes">${escapeHtml(e.notes)}</td>
+        <td><button class="del" data-id="${e.id}" title="Delete entry">✕</button></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+
+  $("historyBody").addEventListener("click", ev => {
+    const btn = ev.target.closest(".del");
+    if (!btn) return;
+    const e = entries.find(x => x.id === btn.dataset.id);
+    if (e && confirm(`Delete fill-up from ${e.date} (${fmt(mpgOf(e))} MPG)?`)) {
+      entries = entries.filter(x => x.id !== e.id);
+      save();
+      render();
+    }
+  });
+
+  // ---- CSV export / import ----
+  $("exportBtn").addEventListener("click", () => {
+    const rows = [["date","miles","gallons","price_per_gal","notes"]];
+    [...entries].sort(byDate).forEach(e =>
+      rows.push([e.date, e.miles, e.gallons, e.price ?? "", csvQuote(e.notes)]));
+    const blob = new Blob([rows.map(r => r.join(",")).join("\r\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mpg-log.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    recordBackup();
+  });
+
+  function csvQuote(s) {
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async ev => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    let added = 0;
+    for (const line of lines.slice(1)) { // skip header
+      const cols = parseCsvLine(line);
+      const [date, miles, gallons, price, notes] = cols;
+      const m = parseFloat(miles), g = parseFloat(gallons);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !(m > 0) || !(g > 0)) continue;
+      entries.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        date, miles: m, gallons: g,
+        price: price === "" || price == null ? null : parseFloat(price),
+        notes: notes || ""
+      });
+      added++;
+    }
+    save();
+    render();
+    ev.target.value = "";
+    alert(added ? `Imported ${added} fill-up${added > 1 ? "s" : ""}.` : "No valid rows found. Expected columns: date (YYYY-MM-DD), miles, gallons, price_per_gal, notes.");
+  });
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQ) {
+        if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else cur += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  // ---- backup reminder ----
+  function renderBackupNudge() {
+    const sinceBackup = entries.length - backupMeta.lastCount;
+    const due = sinceBackup >= REMIND_AFTER;
+    $("backupBanner").hidden = !due;
+    if (due) $("backupCount").textContent = sinceBackup;
+
+    $("backupStatus").textContent = backupMeta.lastDate
+      ? `Last backup: ${journalDate(backupMeta.lastDate)} · ${sinceBackup} entr${sinceBackup === 1 ? "y" : "ies"} since`
+      : entries.length ? "No backup exported yet" : "";
+  }
+
+  function recordBackup() {
+    backupMeta = { lastCount: entries.length, lastDate: new Date().toISOString().slice(0, 10) };
+    saveBackupMeta(backupMeta);
+    renderBackupNudge();
+  }
+
+  $("backupNowBtn").addEventListener("click", () => $("exportBtn").click());
+  $("backupDismissBtn").addEventListener("click", () => {
+    backupMeta.lastCount = entries.length; // hold off until REMIND_AFTER more entries pile up
+    saveBackupMeta(backupMeta);
+    renderBackupNudge();
+  });
+
+  // ---- render all ----
+  function render() {
+    renderStats();
+    renderChart();
+    renderTable();
+    renderBackupNudge();
+  }
+  render();
+})();
+</script>
+</body>
+</html>
