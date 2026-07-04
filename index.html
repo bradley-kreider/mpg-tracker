@@ -149,11 +149,25 @@
   .logtable tr:last-child td { border-bottom: none; }
   .logtable td.mpg-good { color: var(--good); font-weight: 600; }
   .logtable td.notes { white-space: normal; color: var(--ink-dim); font-family: "Public Sans", sans-serif; font-size: 12.5px; }
-  td .del {
+  td .del, td .edit {
     background: none; border: none; color: var(--ink-faint);
     cursor: pointer; font-size: 14px; padding: 2px 6px;
   }
   td .del:hover { color: var(--orange); }
+  td .edit:hover { color: var(--good); }
+  .logform.editing { border-color: var(--good); }
+  .edit-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 18px; padding: 10px 14px;
+    background: rgba(143,174,111,.14); border: 1px solid rgba(143,174,111,.4);
+    font: 500 12px/1 var(--mono); color: var(--good); letter-spacing: .02em;
+  }
+  .edit-banner button {
+    background: none; border: none; color: var(--ink-muted);
+    cursor: pointer; font: 500 11px/1 var(--mono); text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .edit-banner button:hover { color: var(--ink-bright); }
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
 
   /* backup banner */
@@ -218,6 +232,10 @@
 
 <div class="section" id="log">
   <div class="section-hd"><h2 class="hd">Log a fill-up</h2><span>Miles on tank · gallons pumped</span></div>
+  <div class="edit-banner" id="editBanner" hidden>
+    <span>Editing fill-up from <strong id="editBannerDate"></strong></span>
+    <button type="button" id="cancelEditBtn">Cancel edit</button>
+  </div>
   <form id="entryForm" class="logform">
     <div class="grid">
       <div>
@@ -243,7 +261,7 @@
     </div>
     <div class="form-footer">
       <span id="mpgPreview"></span>
-      <button type="submit" class="btn">Log fill-up</button>
+      <button type="submit" class="btn" id="submitBtn">Log fill-up</button>
     </div>
   </form>
 </div>
@@ -286,6 +304,7 @@
 
   /** @type {{id:string,date:string,miles:number,gallons:number,price:number|null,notes:string}[]} */
   let entries = load();
+  let editingId = null;
 
   function load() {
     try {
@@ -328,23 +347,53 @@
   $("miles").addEventListener("input", updatePreview);
   $("gallons").addEventListener("input", updatePreview);
 
+  function startEdit(e) {
+    editingId = e.id;
+    $("date").value = e.date;
+    $("miles").value = e.miles;
+    $("gallons").value = e.gallons;
+    $("price").value = e.price ?? "";
+    $("notes").value = e.notes;
+    updatePreview();
+    $("entryForm").classList.add("editing");
+    $("editBanner").hidden = false;
+    $("editBannerDate").textContent = journalDate(e.date);
+    $("submitBtn").textContent = "Save changes";
+    $("entryForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("miles").focus();
+  }
+
+  function endEdit() {
+    editingId = null;
+    $("entryForm").classList.remove("editing");
+    $("editBanner").hidden = true;
+    $("submitBtn").textContent = "Log fill-up";
+    $("entryForm").reset();
+    $("date").value = new Date().toISOString().slice(0, 10);
+    updatePreview();
+  }
+
+  $("cancelEditBtn").addEventListener("click", endEdit);
+
   $("entryForm").addEventListener("submit", ev => {
     ev.preventDefault();
     const price = $("price").value === "" ? null : parseFloat($("price").value);
-    entries.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    const data = {
       date: $("date").value,
       miles: parseFloat($("miles").value),
       gallons: parseFloat($("gallons").value),
       price,
       notes: $("notes").value.trim()
-    });
+    };
+    if (editingId) {
+      const e = entries.find(x => x.id === editingId);
+      Object.assign(e, data);
+    } else {
+      entries.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...data });
+    }
     save();
     render();
-    ev.target.reset();
-    $("date").value = new Date().toISOString().slice(0, 10);
-    updatePreview();
-    $("miles").focus();
+    endEdit();
   });
 
   // ---- stats ----
@@ -443,7 +492,10 @@
         <td>${e.price != null ? money(e.price) : ""}</td>
         <td>${cost != null ? money(cost) : ""}</td>
         <td class="notes">${escapeHtml(e.notes)}</td>
-        <td><button class="del" data-id="${e.id}" title="Delete entry">✕</button></td>
+        <td>
+          <button class="edit" data-id="${e.id}" title="Edit entry">✎</button>
+          <button class="del" data-id="${e.id}" title="Delete entry">✕</button>
+        </td>
       </tr>`;
     }).join("");
   }
@@ -453,10 +505,17 @@
   }
 
   $("historyBody").addEventListener("click", ev => {
+    const editBtn = ev.target.closest(".edit");
+    if (editBtn) {
+      const e = entries.find(x => x.id === editBtn.dataset.id);
+      if (e) startEdit(e);
+      return;
+    }
     const btn = ev.target.closest(".del");
     if (!btn) return;
     const e = entries.find(x => x.id === btn.dataset.id);
     if (e && confirm(`Delete fill-up from ${e.date} (${fmt(mpgOf(e))} MPG)?`)) {
+      if (editingId === e.id) endEdit();
       entries = entries.filter(x => x.id !== e.id);
       save();
       render();
